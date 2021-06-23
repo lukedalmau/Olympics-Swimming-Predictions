@@ -49,18 +49,17 @@ def deploy_tournament(file,root, simNum,records_table):
         except KeyError:
             records_table[simNum] = [{name_of_file: podium}]
 
-def simulationProcess(executor,directory,i,records_table):
+def simulationProcess(directory,i,records_table):
     for root,dirs,files in os.walk(directory):
 
-        # tasks = [executor.submit(deploy_tournament, file,root,i,records_table) if file.endswith(".csv") else executor.submit(print, "No CSV file")for file in files]
+        executor = ThreadPoolExecutor()
 
-        # wait(tasks,return_when=ALL_COMPLETED)
-        for file in files:
+        tasks = [ executor.submit(deploy_tournament, file, root, i, records_table) 
+        if file.endswith(".csv")
+        else executor.submit(print, "No CSV file")
+        for file in files]
+        wait(tasks,return_when=ALL_COMPLETED)
 
-            if file.endswith(".csv"):
-                deploy_tournament(file,root,i,records_table)
-            else:
-                print("No CSV file")
 
 def tournament_setup_deploy(amount):
 
@@ -71,7 +70,7 @@ def tournament_setup_deploy(amount):
     executor = ThreadPoolExecutor()
     
     for i in range(amount):
-        simulationProcess(executor , directory , i,records_table) 
+        simulationProcess(directory , i,records_table )
 
     events = []
     first = []

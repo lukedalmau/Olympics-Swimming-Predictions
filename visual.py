@@ -57,8 +57,25 @@ set_png_as_page_bg('tokyo_pool.png')
 
 places=["first","second","third"]
 
-amount = st.sidebar.number_input('Amount of simulations',min_value=1,value=1)
-save_df_chckbx = st.sidebar.checkbox("Save Dataframe as CSV",value=True)
+amount = st.sidebar.number_input('Amount of simulations',min_value=1,value=1000)
+save_df_chckbx = st.sidebar.checkbox("Save Dataframe as CSV",value=False)
+
+path = r"./csv"
+if os.path.isdir(path):
+    st.info("Found a csv folder... Try to load it")
+    if st.button('Load data'):
+        for i in range(3):
+            name = places[i]+'_place.csv'
+            newpath = path+'/'+name
+
+            if os.path.exists(newpath):
+
+                st.subheader(f"{places[i].capitalize()} Place")
+                st.dataframe(pd.read_csv(newpath))
+                
+            else:
+                st.warning(f'No {name} founded')
+
 
 if st.button('Start Simulation'):
     clock = time.time()
@@ -71,15 +88,15 @@ if st.button('Start Simulation'):
         
         if save_df_chckbx:
 
-            path = r"./csv/"
             if not os.path.isdir(path):
                 os.mkdir(path)
-            
 
-            path += places[i]+'_place.csv'
+            name = places[i]+'_place.csv'
 
-            if os.path.exists(path):
-                df.to_csv(path,index = False)
+            newpath = path+'/'+name
+
+            if os.path.exists(newpath):
+                df.to_csv(newpath,index = False)
             else:
-                open(path,'x')
-                df.to_csv(path, index=False)
+                open(newpath,'x')
+                df.to_csv(newpath, index=False)
