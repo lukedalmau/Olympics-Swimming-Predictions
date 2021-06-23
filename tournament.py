@@ -57,7 +57,8 @@ class Tournament:
 
         final = sorted(self.ranking.items(), key=lambda x:x[1])[:3]
 
-        swimmers = [(swimmer[0].full_name ,i+1 )for i,swimmer in enumerate(final)]
+        swimmers = [(swimmer[0].full_name, i+1, swimmer[0].team_code,
+                     swimmer[0].team_name)for i, swimmer in enumerate(final)]
 
         return swimmers
 
@@ -100,12 +101,13 @@ class Tournament:
         df.replace(0,random.normalvariate(mean_time,variance))
 
         df_group_by_swimmers = df.groupby(
-            'full_name_computed',as_index=False,sort=False
+            ['full_name_computed','team_code','team_short_name'],as_index=False,sort=False
             )['swim_time'].aggregate(['min','mean','var']
             ).rename(columns={'min':'swim_time','mean':'mean','var':'variance'})
  
         
         for full_name, row in df_group_by_swimmers.iterrows():
-            swimmers.append(Swimmer(full_name, row['swim_time'],row['mean'],row['variance']))
+            name,team_code,team_name = full_name
+            swimmers.append(Swimmer(name, row['swim_time'],row['mean'],row['variance'],team_code,team_name))
         return swimmers
             

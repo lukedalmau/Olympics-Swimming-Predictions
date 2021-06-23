@@ -64,17 +64,19 @@ path = r"./csv"
 if os.path.isdir(path):
     st.info("Found a csv folder... Try to load it")
     if st.button('Load data'):
-        for i in range(3):
-            name = places[i]+'_place.csv'
-            newpath = path+'/'+name
 
-            if os.path.exists(newpath):
+        for root,dirs,files in os.walk(path):
+            for file in files:
+                if file.endswith(".csv"):
+                    simNum,filename = file.split("_")
+                    
+                    name,extension = filename.split('.')
+                    
+                    head,tail = name.split('-')
 
-                st.subheader(f"{places[i].capitalize()} Place")
-                st.dataframe(pd.read_csv(newpath))
-                
-            else:
-                st.warning(f'No {name} founded')
+                    st.subheader(f"Amount of simulations: {simNum} \n {head.capitalize()} {tail.capitalize()}")
+                    st.dataframe(pd.read_csv(root+'/'+file))
+                        
 
 
 if st.button('Start Simulation'):
@@ -91,7 +93,7 @@ if st.button('Start Simulation'):
             if not os.path.isdir(path):
                 os.mkdir(path)
 
-            name = places[i]+'_place.csv'
+            name = f'{amount}_'+places[i]+'-place.csv'
 
             newpath = path+'/'+name
 

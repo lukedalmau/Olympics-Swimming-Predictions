@@ -25,7 +25,8 @@ def deploy_tournament(file,root, simNum,records_table):
     gender, distance, stroke, poolConfiguration = name_of_file.split("-") #Configuracion del torneo
 
     if stroke.find('RELAY')!=-1:
-        df = df[['full_name_computed','swim_time','team_code']]
+        df = df[['full_name_computed', 'swim_time',
+                 'team_code', 'team_short_name']]
     
         df.astype("string")
 
@@ -34,7 +35,7 @@ def deploy_tournament(file,root, simNum,records_table):
 
     else:
 
-        df = df[['full_name_computed','swim_time']]
+        df = df[['full_name_computed','swim_time','team_code','team_short_name']]
         
         df.astype("string")
 
@@ -74,8 +75,11 @@ def tournament_setup_deploy(amount):
 
     events = []
     first = []
+    first_team = []
     second = []
+    second_team = []
     third = []
+    third_team = []
 
     for simNum,values in records_table.items():
         simNum += 1
@@ -84,44 +88,52 @@ def tournament_setup_deploy(amount):
             for event,podium in event_podium.items():
                 events.append(event)
                 first.append(podium[0][0])
+                first_team.append(podium[0][2])
+
                 second.append(podium[1][0])
+                second_team.append(podium[1][2])
+
                 third.append(podium[2][0])
+                third_team.append(podium[2][2])
     data={
         "Events" :events,
         "First Place":first,
+        "First Team": first_team,
         "First Place Percentage": [100*(1.0/amount) for _ in range(len(events))],
         "Second Place" : second,
+        "Second Team": second_team,
         "Second Place Percentage": [100*(1.0/amount) for _ in range(len(events))],
         "Third Place" :third,
+        "Third Team": third_team,
         "Third Place Percentage": [100.0*(1.0/amount) for _ in range(len(events))],
     }
 
 
     df = pd.DataFrame.from_dict(data)
 
-    df_group_by_first = df[['Events','First Place','First Place Percentage']]
+    df_group_by_first = df[['Events','First Place','First Team','First Place Percentage']]
 
     df_group_by_first = df_group_by_first.groupby(
-        ['Events', 'First Place'], as_index=False).sum().sort_values(by=['Events', 'First Place Percentage'], ascending=False)
+        ['Events', 'First Place','First Team'], as_index=False).sum().sort_values(by=['Events', 'First Place Percentage'], ascending=False)
     
    #print(df_group_by_first.head())
     
 
-    df_group_by_second = df[['Events', 'Second Place', 'Second Place Percentage']]
+    df_group_by_second = df[['Events', 'Second Place','Second Team', 'Second Place Percentage']]
 
     df_group_by_second = df_group_by_second.groupby(
-        ['Events', 'Second Place'], as_index=False).sum().sort_values(by=['Events', 'Second Place Percentage'], ascending=False)
+        ['Events', 'Second Place','Second Team'], as_index=False).sum().sort_values(by=['Events', 'Second Place Percentage'], ascending=False)
 
 
-    df_group_by_third = df[['Events', 'Third Place', 'Third Place Percentage']]
+    df_group_by_third = df[['Events', 'Third Place','Third Team', 'Third Place Percentage']]
 
     df_group_by_third = df_group_by_third.groupby(
-        ['Events', 'Third Place'], as_index=False).sum().sort_values(by=['Events', 'Third Place Percentage'], ascending=False)
+        ['Events', 'Third Place','Third Team'], as_index=False).sum().sort_values(by=['Events', 'Third Place Percentage'], ascending=False)
 
 
-    df_group_by_first.columns = ['Event','Name','Percent'] 
-    df_group_by_second.columns = ['Event', 'Name', 'Percent']
-    df_group_by_third.columns = ['Event', 'Name', 'Percent']
+    df_group_by_first.columns = ['Event','Name','Team','Percent'] 
+    df_group_by_second.columns = ['Event', 'Name','Team', 'Percent']
+    df_group_by_third.columns = ['Event', 'Name','Team', 'Percent']
 
 
     #print(df_group_by_first.head())
