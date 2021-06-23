@@ -83,7 +83,8 @@ if st.button('Start Simulation'):
     clock = time.time()
     dfs = tournament_setup_deploy(amount)
     clock=time.time()-clock
-    st.subheader(f"Done in {round(clock,3)} secs")
+    st.subheader(
+        f"Done in {round(clock,3)} secs = {round(clock/60,3)} mins = {round(clock/(60**2),3)}")
     for i,df in enumerate(dfs):
         st.subheader(f"{places[i].capitalize()} Place")
         df

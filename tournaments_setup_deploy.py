@@ -69,9 +69,18 @@ def tournament_setup_deploy(amount):
     directory = os.path.join("archive-database-sports", "fina-csv-all")
 
     executor = ThreadPoolExecutor()
+
+    print("STARTING SIMULATIONS...")
+
     
     for i in range(amount):
+        print(f"SIMULATION {i+1}/{amount}...")
         simulationProcess(directory , i,records_table )
+
+    print("SIMULATIONS DONE...")
+
+    print("REACOMODATING DATA...")
+
 
     events = []
     first = []
@@ -150,6 +159,7 @@ def tournament_setup_deploy(amount):
     second.name = "Second Place"
     third.name = "Third Place"
 
+    print("DATA IS READY...")
 
 
     return first,second,third
