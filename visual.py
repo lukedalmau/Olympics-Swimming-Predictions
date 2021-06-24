@@ -66,8 +66,9 @@ save_predict_chckbx = st.sidebar.checkbox("Save prediction as CSV", value=False)
 path = r"./csv"
 if os.path.isdir(path):
     st.info("Found a csv folder... Try to load it")
+    st.info("Check Predict result before clicking Load data to show predictions of the loaded data instead")
     if st.button('Load data'):
-        dfs = []
+        
         for root,dirs,files in os.walk(path):
             for file in files:
                 if file.endswith(".csv"):
@@ -78,18 +79,36 @@ if os.path.isdir(path):
                     head,tail = name.split('-')
 
                     df = pd.read_csv(root+'/'+file)
+
+                    df_predict = df.groupby(
+                        ['Event'], as_index=False).first().reset_index(drop=True)
                     
                     if predict_results_chckbx:
                         st.subheader(
                             f"Amount of simulations: {simNum} \n {head.capitalize()} {tail.capitalize()} Prediction")
-                        st.dataframe(df.groupby(
-                            ['Event'], as_index=False).first().reset_index(drop=True))
+                        st.dataframe(df_predict)
+                    
                     else:
-
                         st.subheader(
                             f"Amount of simulations: {simNum} \n {head.capitalize()} {tail.capitalize()}")
                         st.dataframe(df)
-                        
+
+                    if save_predict_chckbx:
+                        predict_path = path+'/predictions'
+
+                        if not os.path.isdir(predict_path):
+                            os.mkdir(predict_path)
+
+                        name = f'{simNum}_'+head+'-place_prediction.csv'
+
+                        newpredict_path = predict_path+'/'+name
+
+                        if os.path.exists(newpredict_path):
+                            df_predict.to_csv(newpredict_path,index = False)
+                        else:
+                            open(newpredict_path,'x')
+                            df_predict.to_csv(newpredict_path, index = False)
+                                    
 
 
 if st.button('Start Simulation'):
@@ -137,7 +156,7 @@ if st.button('Start Simulation'):
             newpath = predict_path+'/'+name
 
             if os.path.exists(newpath):
-                df.to_csv(newpath,index = False)
+                df_predict.to_csv(newpath,index = False)
             else:
                 open(newpath,'x')
-                df.to_csv(newpath, index=False)
+                df_predict.to_csv(newpath, index = False)
