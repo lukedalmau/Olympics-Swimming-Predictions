@@ -57,14 +57,17 @@ set_png_as_page_bg('tokyo_pool.png')
 
 places=["first","second","third"]
 
-amount = st.sidebar.number_input('Amount of simulations',min_value=1,value=1000)
-save_df_chckbx = st.sidebar.checkbox("Save Dataframe as CSV",value=False)
+amount = st.sidebar.number_input('Amount of simulations',min_value=1,value=100)
+save_df_chckbx = st.sidebar.checkbox("Save Dataframes as CSV",value=True)
+predict_results_chckbx = st.sidebar.checkbox("Predict Results", value=False)
+save_predict_chckbx = st.sidebar.checkbox("Save prediction as CSV", value=False)
+
 
 path = r"./csv"
 if os.path.isdir(path):
     st.info("Found a csv folder... Try to load it")
     if st.button('Load data'):
-
+        dfs = []
         for root,dirs,files in os.walk(path):
             for file in files:
                 if file.endswith(".csv"):
@@ -74,8 +77,18 @@ if os.path.isdir(path):
                     
                     head,tail = name.split('-')
 
-                    st.subheader(f"Amount of simulations: {simNum} \n {head.capitalize()} {tail.capitalize()}")
-                    st.dataframe(pd.read_csv(root+'/'+file))
+                    df = pd.read_csv(root+'/'+file)
+                    
+                    if predict_results_chckbx:
+                        st.subheader(
+                            f"Amount of simulations: {simNum} \n {head.capitalize()} {tail.capitalize()} Prediction")
+                        st.dataframe(df.groupby(
+                            ['Event'], as_index=False).first().reset_index(drop=True))
+                    else:
+
+                        st.subheader(
+                            f"Amount of simulations: {simNum} \n {head.capitalize()} {tail.capitalize()}")
+                        st.dataframe(df)
                         
 
 
@@ -86,8 +99,17 @@ if st.button('Start Simulation'):
     st.subheader(
         f"Done in {round(clock,1)} secs ~ {round(clock/60,1)} mins ~ {round(clock/(60**2),1)} h")
     for i,df in enumerate(dfs):
-        st.subheader(f"{places[i].capitalize()} Place")
-        df
+        df_predict = df.groupby(
+            ['Event'], as_index=False).first().reset_index(drop=True)
+
+        if predict_results_chckbx:
+            st.subheader(
+                f"Amount of simulations: {simNum} \n {head.capitalize()} {tail.capitalize()} Prediction")
+            st.dataframe(df_predict)
+
+        else:
+            st.subheader(f"{places[i].capitalize()} Place")
+            st.dataframe(df)
         
         if save_df_chckbx:
 
@@ -97,6 +119,22 @@ if st.button('Start Simulation'):
             name = f'{amount}_'+places[i]+'-place.csv'
 
             newpath = path+'/'+name
+
+            if os.path.exists(newpath):
+                df.to_csv(newpath,index = False)
+            else:
+                open(newpath,'x')
+                df.to_csv(newpath, index=False)
+
+        if save_predict_chckbx:
+            predict_path=path+'/predictions'
+
+            if not os.path.isdir(predict_path):
+                os.mkdir(predict_path)
+
+            name = f'{amount}_'+places[i]+'-place_prediction.csv'
+
+            newpath = predict_path+'/'+name
 
             if os.path.exists(newpath):
                 df.to_csv(newpath,index = False)
