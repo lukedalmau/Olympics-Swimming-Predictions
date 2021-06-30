@@ -1,43 +1,49 @@
+from datetime import datetime
 import os
 from typing import Dict, List
 from tournament import Tournament
+from swimmer import Swimmer
 import pandas as pd
 from concurrent.futures import *
 
+
 def convert_time(o):
     try:
-        o=float(o)
+        o = float(o)
         return float(o)
     except:
-        m,s = o.split(':')
+        m, s = o.split(':')
         return float(m)*60 + float(s)
 
+def convert_date(o):
+    o_date = datetime.strptime(o,'%d/%m/%Y').date()
+    return o_date
 
 
-def deploy_tournament(config,df, simNum,records_table):
+def deploy_tournament(config, df, simNum, records_table):
 
-    gender, distance, stroke, poolConfiguration,name_of_file = config
+    gender, distance, stroke, poolConfiguration, name_of_file = config
 
-    tournament = Tournament(gender,distance,stroke,poolConfiguration,df)
+    tournament = Tournament(gender, distance, stroke, poolConfiguration, df)
 
     podium = tournament.start()
 
     try:
-        records_table[simNum].append({name_of_file:podium})
+        records_table[simNum].append({name_of_file: podium})
     except KeyError:
         records_table[simNum] = [{name_of_file: podium}]
 
-def simulationProcess(configs_dfs,i,amount,records_table):
-    
+
+def simulationProcess(configs_dfs, i, amount, records_table):
+
     print(f"SIMULATION {i+1}/{amount}...")
 
     for config, df in configs_dfs:
 
-        deploy_tournament(config,df ,i, records_table) 
+        deploy_tournament(config, df, i, records_table)
 
-        
 
-def fetch_csv(directory):
+def fetch_csv(directory,players,from_date,to_date):
     configs_dfs = []
     for root, dirs, files in os.walk(directory):
         for file in files:
@@ -48,33 +54,42 @@ def fetch_csv(directory):
 
                 name_of_file, _ = file.split(".")
 
-                gender, distance, stroke, poolConfiguration = name_of_file.split("-")  # Configuracion del torneo
+                gender, distance, stroke, poolConfiguration = name_of_file.split(
+                    "-")  # Configuracion del torneo
+
+                config = (gender, distance, stroke,
+                          poolConfiguration, name_of_file)
+
+                df = df[['full_name_computed', 'swim_time',
+                         'team_code', 'team_short_name', 'swim_date']]
+
+                df.astype(str)
+
+                df['swim_time'] = df['swim_time'].apply(
+                    convert_time).astype(float)
+
+                df['swim_date'] = df['swim_date'].apply(convert_date)
                 
-                config = (gender,distance,stroke,poolConfiguration,name_of_file)
+                df = df[ (from_date<=df.swim_date) & (df.swim_date <= to_date) ]
 
-                if stroke.find('RELAY') != -1:
-                    df = df[['full_name_computed', 'swim_time',
-                            'team_code', 'team_short_name']]
 
-                    df.astype("string")
-
-                    df['swim_time'] = df['swim_time'].apply(convert_time).astype('float64')
-                    pass
+                if stroke.find('RELAY') == -1:
+                    configs_dfs.append((config, df))
 
                 else:
+                    pass
 
-                    df = df[['full_name_computed', 'swim_time',
-                            'team_code', 'team_short_name']]
-
-                    df.astype("string")
-
-                    df['swim_time'] = df['swim_time'].apply(convert_time).astype('float64')
-
-                    configs_dfs.append((config,df))
+                       
     return configs_dfs
 
 
-def tournament_setup_deploy(amount):
+def tournament_setup_deploy(
+        amount:int,
+        tournament_config=None,
+        players: List[Swimmer] = None,
+        from_date=datetime(1970,1,1),
+        to_date=datetime.today()
+        ):
 
     records_table: Dict[str, List] = {}
 
@@ -83,11 +98,12 @@ def tournament_setup_deploy(amount):
     executor = ThreadPoolExecutor()
     proxecutor = ProcessPoolExecutor()
 
-    config_dfs = fetch_csv(directory)
+    config_dfs = fetch_csv(directory,players,from_date,to_date)
 
     print("STARTING SIMULATIONS...")
 
-    tasks = [executor.submit(simulationProcess, config_dfs, i, amount, records_table)for i in range(amount)]
+    tasks = [executor.submit(
+        simulationProcess, config_dfs, i, amount, records_table)for i in range(amount)]
 
     wait(tasks, return_when=ALL_COMPLETED)
 
@@ -95,11 +111,10 @@ def tournament_setup_deploy(amount):
 
     print("REACOMODATING DATA...")
 
-
     events = []
     first = []
     first_team_code = []
-    first_team=[]
+    first_team = []
     second = []
     second_team_code = []
     second_team = []
@@ -107,16 +122,15 @@ def tournament_setup_deploy(amount):
     third_team_code = []
     third_team = []
 
-    for simNum,values in records_table.items():
+    for simNum, values in records_table.items():
         simNum += 1
-        
+
         for event_podium in values:
-            for event,podium in event_podium.items():
+            for event, podium in event_podium.items():
                 events.append(event)
                 first.append(podium[0][0])
                 first_team_code.append(podium[0][2])
                 first_team.append(podium[0][3])
-
 
                 second.append(podium[1][0])
                 second_team_code.append(podium[1][2])
@@ -126,22 +140,21 @@ def tournament_setup_deploy(amount):
                 third_team_code.append(podium[2][2])
                 third_team.append(podium[2][3])
 
-    data={
-        "Events" :events,
-        "First Place":first,
+    data = {
+        "Events": events,
+        "First Place": first,
         "First Team Code": first_team_code,
         "First Team": first_team,
         "First Place Percentage": [100*(1.0/amount) for _ in range(len(events))],
-        "Second Place" : second,
+        "Second Place": second,
         "Second Team Code": second_team_code,
         "Second Team": second_team,
         "Second Place Percentage": [100*(1.0/amount) for _ in range(len(events))],
-        "Third Place" :third,
+        "Third Place": third,
         "Third Team Code": third_team_code,
         "Third Team": third_team,
         "Third Place Percentage": [100.0*(1.0/amount) for _ in range(len(events))],
     }
-
 
     df = pd.DataFrame.from_dict(data)
 
@@ -151,11 +164,11 @@ def tournament_setup_deploy(amount):
     df_group_by_first = df_group_by_first.groupby(
         ['Events', 'First Place', 'First Team Code', 'First Team'], as_index=False).sum().sort_values(
             by=['Events', 'First Place Percentage'], ascending=False)
-    
+
    #print(df_group_by_first.head())
-    
+
     df_group_by_second = df[['Events', 'Second Place',
-                             'Second Team Code','Second Team', 'Second Place Percentage']]
+                             'Second Team Code', 'Second Team', 'Second Place Percentage']]
 
     df_group_by_second = df_group_by_second.groupby(
         ['Events', 'Second Place', 'Second Team Code', 'Second Team'], as_index=False).sum().sort_values(
@@ -168,14 +181,15 @@ def tournament_setup_deploy(amount):
         ['Events', 'Third Place', 'Third Team Code', 'Third Team'], as_index=False).sum().sort_values(
             by=['Events', 'Third Place Percentage'], ascending=False)
 
-
-    df_group_by_first.columns = ['Event','Name','Team Code','Team Name','Percent'] 
-    df_group_by_second.columns = ['Event', 'Name','Team Code','Team Name', 'Percent']
-    df_group_by_third.columns = ['Event', 'Name','Team Code','Team Name', 'Percent']
-
+    df_group_by_first.columns = ['Event', 'Name',
+                                 'Team Code', 'Team Name', 'Percent']
+    df_group_by_second.columns = [
+        'Event', 'Name', 'Team Code', 'Team Name', 'Percent']
+    df_group_by_third.columns = ['Event', 'Name',
+                                 'Team Code', 'Team Name', 'Percent']
 
     #print(df_group_by_first.head())
-   
+
     first = df_group_by_first.reset_index().drop(['index'], axis=1)
 
     second = df_group_by_second.reset_index().drop(['index'], axis=1)
@@ -190,7 +204,6 @@ def tournament_setup_deploy(amount):
 
     print("DATA IS READY...\n \n")
 
-
-    return first,second,third
+    return first, second, third
 
 #print(tournament_setup_deploy(10))

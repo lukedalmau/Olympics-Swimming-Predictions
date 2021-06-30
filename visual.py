@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import time
 
@@ -57,7 +58,13 @@ set_png_as_page_bg('tokyo_pool.png')
 
 places = ["first", "second", "third"]
 
+epoch = datetime(1970, 1, 1)
 
+st.sidebar.subheader("Select the range of time you want the data")
+from_date = st.sidebar.date_input(
+    'Since:', value=epoch, min_value=epoch, max_value=datetime.today())
+to_date = st.sidebar.date_input(
+    'Until:', min_value=epoch, max_value=datetime.today())
 
 amount = st.sidebar.number_input(
     'Amount of simulations', min_value=1, value=100)
@@ -69,8 +76,6 @@ predict_results_chckbx = st.sidebar.checkbox(
     "Predict Results by places", value=False)
 save_predict_chckbx = st.sidebar.checkbox(
     "Save prediction as CSV", value=False)
-
-    
 
 full_predict_results_chckbx = st.sidebar.checkbox(
     "Full Prediction", value=False)
@@ -118,7 +123,7 @@ if os.path.isdir(path):
                             st.dataframe(
                                 df_full_prediction[['Event', 'Name', 'Percent', 'Team Code']])
 
-                    else:
+                    if not any([predict_results_chckbx,full_predict_results_chckbx]):
                         st.subheader(
                             f"Amount of simulations: {simNum} \n {head.capitalize()} {tail.capitalize()}")
                         st.dataframe(df)
@@ -163,20 +168,34 @@ if os.path.isdir(path):
 
 if st.button('Start Simulation'):
     clock = time.time()
-    dfs = tournament_setup_deploy(amount)
+    dfs = tournament_setup_deploy(amount,from_date=from_date,to_date=to_date)
     clock = time.time()-clock
     st.subheader(
         f"Done in {round(clock,1)} secs ~ {round(clock/60,1)} mins ~ {round(clock/(60**2),1)} h")
     for i, df in enumerate(dfs):
+
         df_predict = df.groupby(
             ['Event'], as_index=False).first().reset_index(drop=True)
+        
+        if i % 3 == 2:
+            df_full_prediction = pd.concat([dfs[0], dfs[1], dfs[2]]).groupby(
+                ['Event', 'Name', 'Team Code', 'Team Name'], as_index=False).sum().sort_values(
+                by=['Event', 'Percent'], ascending=False).reset_index(drop=True)
 
         if predict_results_chckbx:
             st.subheader(
-                f"Amount of simulations: {simNum} \n {head.capitalize()} {tail.capitalize()} Prediction")
+                f"Amount of simulations: {amount} \n {head.capitalize()} {tail.capitalize()} Prediction")
             st.dataframe(df_predict)
+        
+        if full_predict_results_chckbx:
+    
+            if i % 3 == 2:
+                st.subheader(
+                    f"Amount of simulations: {amount} \n Full Prediction")
+                st.dataframe(
+                    df_full_prediction[['Event', 'Name', 'Percent', 'Team Code']])
 
-        else:
+        if not any([predict_results_chckbx, full_predict_results_chckbx]):
             st.subheader(f"{places[i].capitalize()} Place")
             st.dataframe(df)
 
@@ -210,3 +229,25 @@ if st.button('Start Simulation'):
             else:
                 open(newpath, 'x')
                 df_predict.to_csv(newpath, index=False)
+
+        if save_full_predict_chckbx:
+    
+            if i % 3 == 2:
+
+                full_predict_path = path+'/predictions/full_prediction'
+
+                if not os.path.isdir(full_predict_path):
+                    os.mkdir(full_predict_path)
+
+                name = f'{amount}_full_prediction.csv'
+
+                newfull_predict_path = full_predict_path+'/'+name
+
+                if os.path.exists(newfull_predict_path):
+                    df_full_prediction.to_csv(
+                        newfull_predict_path, index=False)
+                else:
+                    open(newfull_predict_path, 'x')
+                    df_full_prediction.to_csv(
+                        newfull_predict_path, index=False)
+
