@@ -1,6 +1,6 @@
 from datetime import datetime
 import os
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from tournament import Tournament
 from swimmer import Swimmer
 import pandas as pd
@@ -15,16 +15,17 @@ def convert_time(o):
         m, s = o.split(':')
         return float(m)*60 + float(s)
 
+
 def convert_date(o):
-    o_date = datetime.strptime(o,'%d/%m/%Y').date()
+    o_date = datetime.strptime(o, '%d/%m/%Y').date()
     return o_date
 
 
 def deploy_tournament(config, df, simNum, records_table):
 
-    gender, distance, stroke, poolConfiguration, name_of_file = config
+    gender, distance, stroke, poolConfiguration, name_of_file, added_swimmers = config
 
-    tournament = Tournament(gender, distance, stroke, poolConfiguration, df)
+    tournament = Tournament(gender, distance, stroke, poolConfiguration, added_swimmers, df)
 
     podium = tournament.start()
 
@@ -43,7 +44,7 @@ def simulationProcess(configs_dfs, i, amount, records_table):
         deploy_tournament(config, df, i, records_table)
 
 
-def fetch_csv(directory,players,from_date,to_date):
+def fetch_csv(directory, added_swimmers, eliminated_swimmers, from_date, to_date):
     configs_dfs = []
     for root, dirs, files in os.walk(directory):
         for file in files:
@@ -56,9 +57,15 @@ def fetch_csv(directory,players,from_date,to_date):
 
                 gender, distance, stroke, poolConfiguration = name_of_file.split(
                     "-")  # Configuracion del torneo
+                
+                try:
+                    added_list = added_swimmers[name_of_file]
+                except KeyError:
+                    added_list = []
+
 
                 config = (gender, distance, stroke,
-                          poolConfiguration, name_of_file)
+                          poolConfiguration, name_of_file,added_list)
 
                 df = df[['full_name_computed', 'swim_time',
                          'team_code', 'team_short_name', 'swim_date']]
@@ -69,27 +76,41 @@ def fetch_csv(directory,players,from_date,to_date):
                     convert_time).astype(float)
 
                 df['swim_date'] = df['swim_date'].apply(convert_date)
+
+                df = df[(from_date <= df.swim_date)
+                        & (df.swim_date <= to_date)]
+
+                df = df[['full_name_computed', 'swim_time',
+                         'team_code', 'team_short_name']]
                 
-                df = df[ (from_date<=df.swim_date) & (df.swim_date <= to_date) ]
+                try:
+                    eliminated_list = eliminated_swimmers[name_of_file]
+                except KeyError:
+                    eliminated_list = []
 
+                for item in eliminated_list:
 
+                    df = df[df.full_name_computed != item]
+
+                
                 if stroke.find('RELAY') == -1:
+
                     configs_dfs.append((config, df))
 
                 else:
                     pass
 
-                       
     return configs_dfs
 
 
 def tournament_setup_deploy(
-        amount:int,
+        amount: int,
         tournament_config=None,
-        players: List[Swimmer] = None,
-        from_date=datetime(1970,1,1),
+        added_swimmers: Dict[str, Tuple] = {},
+        eliminated_swimmers: Dict[str, str] = {},
+        from_date=datetime(1970, 1, 1),
         to_date=datetime.today()
-        ):
+    ):
 
     records_table: Dict[str, List] = {}
 
@@ -98,7 +119,8 @@ def tournament_setup_deploy(
     executor = ThreadPoolExecutor()
     proxecutor = ProcessPoolExecutor()
 
-    config_dfs = fetch_csv(directory,players,from_date,to_date)
+    config_dfs = fetch_csv(directory, added_swimmers,
+                           eliminated_swimmers, from_date, to_date)
 
     print("STARTING SIMULATIONS...")
 

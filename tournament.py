@@ -1,5 +1,5 @@
 from typing import Dict, List,Tuple
-from numpy.core.numeric import NaN, True_
+from numpy.core.numeric import False_, NaN, True_
 from pandas.core.frame import DataFrame
 from swimmer import Swimmer
 import random
@@ -7,12 +7,13 @@ import random
 
 class Tournament:
 
-    def __init__(self,gender:str,distance:str,stroke:str,poolConfiguration:str,df:DataFrame) -> None:
+    def __init__(self,gender:str,distance:str,stroke:str,poolConfiguration:str,added_swimmers: List[Swimmer],df:DataFrame) -> None:
         self.gender = gender
         self.distance = distance
         self.stroke = stroke
         self.poolConfiguration = poolConfiguration
         self.swimmers:List[Swimmer] = self.initializeSwimmers(df)
+        self.swimmers.extend([x for x in added_swimmers])
         self.ranking = {}
 
 
@@ -70,7 +71,13 @@ class Tournament:
         series=[[]for _ in range(series_num)]
         carriles=[[]for _ in range(8)]
         
-        swimmers_time.sort(key=lambda x:x[1],reverse=True)
+        swimmers_time.sort(key=lambda x:x[1],reverse=False)
+
+        cut=series_num*8
+
+        swimmers_time = swimmers_time[:cut]
+
+        swimmers_time.sort(key=lambda x: x[1], reverse=True)
 
         swimmers = [x[0] for x in swimmers_time]
 
@@ -84,7 +91,7 @@ class Tournament:
         
         for serie in series:
             for swimmer in serie:
-                self.ranking[swimmer]=swimmer.Swim()
+                self.ranking[swimmer]=swimmer.Swim(serie)
 
 
     def initializeSwimmers(self,df: DataFrame)->List[Swimmer]:
