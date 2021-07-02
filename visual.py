@@ -409,6 +409,38 @@ else:
                         swimmer_name_to_eliminate)
                 st.info('Successfully deleted')
 
+            if st.button('Remove from Added Swimmers'):
+                try:
+                    swimmers_list2eliminate = [x.full_name == swimmer_name_to_eliminate for x in added_swimmers[eliminated_swimmer_event]]
+                    
+                    for i, check in enumerate(swimmers_list2eliminate):
+                        if check:
+
+                            added_swimmers[eliminated_swimmer_event].pop(i)
+
+
+                except KeyError:
+                    pass
+                
+                st.info('Successfully deleted')
+
+
+            if st.button("Remove from Eliminated Swimmers"):
+                try:
+                    while True:
+                        try:
+                            eliminated_swimmers[eliminated_swimmer_event].remove(
+                                swimmer_name_to_eliminate)
+
+                        except ValueError:
+                            break
+
+                except KeyError:
+                    pass
+
+                st.info('Successfully deleted')
+
+
     if modify_choice == 'Add an event' :
         event = st.text_input('Event name', value="M-400-FREESTYLE-LCM")
         if len(event) == 0:
