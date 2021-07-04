@@ -183,14 +183,16 @@ if choice == 'Simulate':
                             ['Event'], as_index=False).first().reset_index(drop=True)
 
                         if i % 3 == 2:
-                            df_full_prediction = pd.concat([dfs.pop(), dfs.pop(), dfs.pop()]).groupby(['Event', 'Name', 'Team Code', 'Team Name'], as_index=False).sum().sort_values(
+                            df_full_prediction = pd.concat([dfs.pop(), dfs.pop(), dfs.pop()]).groupby(
+                                ['Event', 'Name', 'Team Code', 'Team Name'], as_index=False).agg(
+                                    {'Percent':'sum','Swim Time (seconds)' : 'mean'}).sort_values(
                                 by=['Event', 'Percent'], ascending=False).reset_index(drop=True)
 
                         if predict_results_chckbx:
                             st.subheader(
                                 f"Amount of simulations: {simNum} \n {head.capitalize()} {tail.capitalize()} Prediction")
                             st.dataframe(
-                                df_predict[['Event', 'Name', 'Percent', 'Team Code']])
+                                df_predict[['Event', 'Name', 'Percent', 'Swim Time (seconds)', 'Team Code']])
 
                         if full_predict_results_chckbx:
 
@@ -198,7 +200,7 @@ if choice == 'Simulate':
                                 st.subheader(
                                     f"Amount of simulations: {simNum} \n Full Prediction")
                                 st.dataframe(
-                                    df_full_prediction[['Event', 'Name', 'Percent', 'Team Code']])
+                                    df_full_prediction[['Event', 'Name', 'Percent','Swim Time (seconds)','Team Code']])
 
                         if not any([predict_results_chckbx,full_predict_results_chckbx]):
                             st.subheader(
@@ -267,7 +269,8 @@ if choice == 'Simulate':
             
             if i % 3 == 2:
                 df_full_prediction = pd.concat([dfs[0], dfs[1], dfs[2]]).groupby(
-                    ['Event', 'Name', 'Team Code', 'Team Name'], as_index=False).sum().sort_values(
+                    ['Event', 'Name', 'Team Code', 'Team Name'], as_index=False).agg(
+                        {'Percent':'sum','Swim Time (seconds)' : 'mean'}).sort_values(
                     by=['Event', 'Percent'], ascending=False).reset_index(drop=True)
 
             if predict_results_chckbx:
@@ -281,7 +284,7 @@ if choice == 'Simulate':
                     st.subheader(
                         f"Amount of simulations: {amount} \n Full Prediction")
                     st.dataframe(
-                        df_full_prediction[['Event', 'Name', 'Percent', 'Team Code']])
+                        df_full_prediction[['Event', 'Name', 'Percent','Swim Time (seconds)', 'Team Code']])
 
             if not any([predict_results_chckbx, full_predict_results_chckbx]):
                 st.subheader(f"{places[i].capitalize()} Place")
