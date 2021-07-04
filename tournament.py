@@ -59,7 +59,7 @@ class Tournament:
         final = sorted(self.ranking.items(), key=lambda x:x[1])[:3]
 
         swimmers = [(swimmer[0].full_name, i+1, swimmer[0].team_code,
-                     swimmer[0].team_name)for i, swimmer in enumerate(final)]
+                     swimmer[0].team_name,swimmer[1])for i, swimmer in enumerate(final)]
 
         return swimmers
 
